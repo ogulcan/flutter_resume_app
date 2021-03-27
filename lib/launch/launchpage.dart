@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:overlay_support/overlay_support.dart';
-import 'package:resume_app/home/homepage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LaunchPage extends StatefulWidget {
   LaunchPage({Key key}) : super(key: key);
@@ -11,11 +11,15 @@ class LaunchPage extends StatefulWidget {
 }
 
 class _LaunchPageState extends State<LaunchPage> {
+  final ACCESS_CODE = "access_code";
+
   double firstContainerOpacity = 0;
   double secondContainerOpacity = 0;
+  var accessCode = "";
   var buttonText = "Detaylara Bak";
   var defaultFadeInDuration = Duration(milliseconds: 500);
-  Map<String, dynamic> accessCodes = {};
+
+  Map<String, QueryDocumentSnapshot> accessCodes = {};
   TextEditingController accessEditingController = TextEditingController();
 
   @override
@@ -23,42 +27,64 @@ class _LaunchPageState extends State<LaunchPage> {
     super.initState();
     loadAccessCodes();
     showFirstContainer();
-    showSecondContainer();
   }
 
   @override
   void didUpdateWidget(LaunchPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    showFirstContainer();
-    showSecondContainer();
   }
 
+  Future<String> getAccessCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return Future.value(prefs.getString(ACCESS_CODE) ?? "");
+  }
+
+  void storeAccessCode(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString(ACCESS_CODE, code);
+  }
+
+  void removeAccessCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.remove(ACCESS_CODE);
+  }
+
+  // TODO: Handle error case
   Future<void> loadAccessCodes() async {
     FirebaseFirestore.instance
         .collection('users')
         .get()
         .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((doc) {
-        accessCodes.putIfAbsent(doc.id, () => {doc.data()});
+        accessCodes.putIfAbsent(doc.id, () => doc);
       });
-
-      accessCodes.forEach((key, value) {
-        print(key);
-        print(value);
-      });
-      //print(accessCodes.for);
     });
   }
 
   Future<void> showFirstContainer() async {
-    await Future.delayed(Duration(milliseconds: 1500), () {});
-    setState(() {
-      firstContainerOpacity = 1;
+    await Future.delayed(Duration(milliseconds: 1000), () {
+      setState(() {
+        firstContainerOpacity = 1;
+      });
+    });
+
+    await Future.delayed(Duration(milliseconds: 1000), () {
+      getAccessCode().then((code) {
+        if (code.isEmpty) {
+          showSecondContainer();
+        } else if (checkAccessCode(code)) {
+          goHomePage(true);
+        } else {
+          removeAccessCode();
+          showNotification("Erişim kodunuz artık geçersiz", Colors.orange);
+          showSecondContainer();
+        }
+      }).catchError((error) => print(error));
     });
   }
 
   Future<void> showSecondContainer() async {
-    await Future.delayed(Duration(milliseconds: 3500), () {});
+    await Future.delayed(Duration(milliseconds: 1000), () {});
     setState(() {
       secondContainerOpacity = 1;
     });
@@ -149,7 +175,7 @@ class _LaunchPageState extends State<LaunchPage> {
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 24)),
-                            onPressed: () => checkAccessCode(),
+                            onPressed: () => onButtonTap(),
                           ),
                           TextButton(
                               style: TextButton.styleFrom(
@@ -174,17 +200,27 @@ class _LaunchPageState extends State<LaunchPage> {
     );
   }
 
-  void checkAccessCode() {
-    if (accessEditingController.text.isEmpty == false &&
-        accessCodes.keys.contains(accessEditingController.text)) {
+  bool checkAccessCode(String code) {
+    var expireTS = accessCodes[code].get('ts').seconds;
+    var now = DateTime.now().millisecondsSinceEpoch / 1000;
+
+    return (code.isEmpty == false &&
+        accessCodes.keys.contains(code) &&
+        now < expireTS);
+  }
+
+  void onButtonTap() {
+    if (checkAccessCode(accessEditingController.text)) {
+      storeAccessCode(accessEditingController.text);
       goHomePage(true);
     } else {
-      showSimpleNotification(
-          Text("Erişim kodu yanlış, lütfen kontrol edin",
-              style: TextStyle(color: Colors.white)),
-          duration: Duration(milliseconds: 6000),
-          background: Colors.red);
+      showNotification("Geçersiz erişim kodu", Colors.red);
     }
+  }
+
+  void showNotification(String message, Color color) {
+    showSimpleNotification(Text(message, style: TextStyle(color: Colors.white)),
+        duration: Duration(milliseconds: 6000), background: color);
   }
 
   void goHomePage(bool hasAccess) {
@@ -193,6 +229,7 @@ class _LaunchPageState extends State<LaunchPage> {
             "access": 1,
           }
         : {};
-    Navigator.pushNamed(context, '/home', arguments: arguments);
+    //Navigator.pushNamed(context, '/home', arguments: arguments);
+    Navigator.pushReplacementNamed(context, '/home', arguments: arguments);
   }
 }

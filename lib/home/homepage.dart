@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:resume_app/home/about.dart';
+import 'package:resume_app/home/experience.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -17,7 +17,7 @@ class _HomePageState extends State<HomePage> {
   ];
   var views = [
     AboutPage(),
-    Icon(Icons.directions_transit),
+    ExperiencePage(),
     Icon(Icons.directions_bike),
     Icon(Icons.directions_bike),
   ];
@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
     super.didChangeDependencies();
     hasAccess = (ModalRoute.of(context).settings.arguments as Map)
         .containsKey("access");
-    print("-->");
+
     if (hasAccess == false) {
       tabs.remove(tabs.removeLast());
       views.remove(views.removeLast());

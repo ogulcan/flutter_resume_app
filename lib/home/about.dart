@@ -6,16 +6,15 @@ class AboutPage extends StatefulWidget {
   State<StatefulWidget> createState() => _AboutPageState();
 }
 
-class _AboutPageState extends State<AboutPage> {
+class _AboutPageState extends State<AboutPage>
+    with AutomaticKeepAliveClientMixin<AboutPage> {
   var head = "";
   var content = "";
 
   @override
   void initState() {
     super.initState();
-    if (head == "") {
-      getTabData();
-    }
+    getTabData();
   }
 
   Future<void> getTabData() async {
@@ -24,7 +23,6 @@ class _AboutPageState extends State<AboutPage> {
         .doc('about')
         .get()
         .then((DocumentSnapshot documentSnapshot) {
-      print("...");
       content = documentSnapshot.get('content');
       head = documentSnapshot.get('head');
       setState(() {});
@@ -33,7 +31,8 @@ class _AboutPageState extends State<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
-    print("--> Build $content");
+    super.build(context);
+
     return Scaffold(
       body: Column(
         children: [
@@ -61,4 +60,7 @@ class _AboutPageState extends State<AboutPage> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
