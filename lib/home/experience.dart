@@ -18,11 +18,12 @@ class _ExperiencePageState extends State<ExperiencePage>
 
   Future<void> getTabData() async {
     FirebaseFirestore.instance
-        .collection('tabs')
-        .doc('experience')
+        .collection('experiences')
         .get()
-        .then((DocumentSnapshot documentSnapshot) {
-      experiences = documentSnapshot.get("active") as List;
+        .then((QuerySnapshot querySnapshot) {
+      querySnapshot.docs.forEach((doc) {
+        experiences.add(doc.data());
+      });
       setState(() {});
     });
   }
@@ -63,6 +64,7 @@ class ExperienceItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double paddingTop = (index == 0) ? 10 : 0;
+    print(data);
 
     return Container(
         padding: EdgeInsets.all(0),
@@ -105,7 +107,7 @@ class ExperienceItem extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "SDK Developer",
+                          data['position'],
                           overflow: TextOverflow.ellipsis,
                           maxLines: 2,
                           textAlign: TextAlign.start,
@@ -113,14 +115,14 @@ class ExperienceItem extends StatelessWidget {
                               fontWeight: FontWeight.bold, fontSize: 20),
                         ),
                         Text(
-                          "Company A ahs asda sd aa ds hasdsadsad",
+                          data['company'],
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontWeight: FontWeight.normal, fontSize: 15),
                         ),
                         Text(
-                          "Description Description Description Description Description Description Description Description",
+                          data['desc'],
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
