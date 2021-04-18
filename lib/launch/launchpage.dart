@@ -201,6 +201,9 @@ class _LaunchPageState extends State<LaunchPage> {
   }
 
   bool checkAccessCode(String code) {
+    if (accessCodes[code] == null) {
+      return false;
+    }
     var expireTS = accessCodes[code].get('ts').seconds;
     var now = DateTime.now().millisecondsSinceEpoch / 1000;
 
